@@ -189,18 +189,18 @@ def create_dict_of_extracts(dict_of_rev, total_number_of_rev, progress_info=True
 #                         multiple excel files will be created (by default 200)
 #Output: None, instead excel file(s) in the folder, where this file is saved will be created
 def create_excel(dict_of_header, sheets_per_excel=200):
-    print(dict_of_header)
+    #print(dict_of_header)
     pageids = dict_of_header.keys() #get all pageids
     workbook_count = 1 #this count will go up every sheet_per_excel steps (counts how many excel files will be created)
     sheet_count = 1 #this count will go up after every pageid and counts how many pages there are
     for pageid in pageids: #iterate over all pageids
-        time = dict_of_header[pageid].keys() #create a list of all times when a the introduction of the given pageid was cahnged
+        timestamp = dict_of_header[pageid].keys() #create a list of all times when a the introduction of the given pageid was cahnged
         intro = dict_of_header[pageid].values() #create a list of all introductions. Note that now each index of both
                                                 #list belongs together (time[5] is the time the introduction was
                                                 #changed to intro[5])
         #create a two-dimensional list (list-command) where described as above time[5] is zipped with intro[5]
         #and then creating a Dataframe from this list with the column titles 'time' and 'introduction'
-        df = DataFrame(list(zip(time, intro)), columns=['time', 'introduction'])
+        df = DataFrame(list(zip(timestamp, intro)), columns=['time', 'introduction'])
 
         if sheet_count == 1:
             # creating the path for the excel, where the dataframe will be saved (CUR_DIR is the path to the folder,
@@ -208,15 +208,8 @@ def create_excel(dict_of_header, sheets_per_excel=200):
             # after sheets_per_excel pageids a new file is used
             excel_path = os.path.join(CUR_DIR, 'Wikipedia_article_statement_no_' + str(workbook_count) + '.xlsx')
             writer = pd.ExcelWriter(excel_path, engine='xlsxwriter')  # create a ExcelWriter Object to the path created above
-        if sheet_count % sheets_per_excel == 0: #if the pageid count modulo sheets_per_excel is 0, the current
-            writer.save()
-            workbook_count += 1 #excel file contain sheets_per_excel sheets and therefore a new file is needed
-            excel_path = os.path.join(CUR_DIR, 'Wikipedia_article_statement_no_' + str(workbook_count) + '.xlsx')
-            writer = pd.ExcelWriter(excel_path, engine='xlsxwriter')
-
-
         internet_connection = False
-        while not internet_connection:
+        while not internet_connection: #catch internet connection errors, detailed explanation see create_dict_of_rv_ids
             try:
                 title_request_json = get_info(pageid) #request basic information (especially the title) of the current article
                 internet_connection = True
@@ -234,14 +227,23 @@ def create_excel(dict_of_header, sheets_per_excel=200):
                                                        #title of the page as name
         except (ValueError, xlsxwriter.exceptions.InvalidWorksheetName) as e: #in case of a forbidden char just take the pageid as title
             df.to_excel(writer, sheet_name=str(pageid))
+        if sheet_count % sheets_per_excel == 0: #if the pageid count modulo sheets_per_excel is 0, the current
+            writer.save() #excel file contain sheets_per_excel sheets and therefore a new file is needed. Therefore
+            workbook_count += 1 #first save the "full" excel than increase the workbook count and create a new excel file
+            excel_path = os.path.join(CUR_DIR, 'Wikipedia_article_statement_no_' + str(workbook_count) + '.xlsx')
+            writer = pd.ExcelWriter(excel_path, engine='xlsxwriter')
         sheet_count += 1  # increasing the pageid count
-    writer.save() #save the excel file
+    writer.save() #save the last excel file, which is not full at this point (if sheets_per_excel divides the number of
+                  #pageids without remainder then the last excel file will be saved empty
 
 
 
-
+#test file for debugging
 def test_everything():
-    test_ids = np.zeros(2)
+    test_ids = np.zeros(2) #array with test ids, where articles are saved with a small amount of revisions so that the
+                           #runtime is relatively fast (1-4) and two cases(5-6), which I already did by hand to check
+                           #check for correctness. Just choose the length of the test_id array and remove the hashtags
+                           #in front of the needed ids
     #test_ids[2] = 334920 #Unterreichenbach
     test_ids[0] = 9984491 #Olympische Winterspiele 1932/Teilnehmer (Norwegen)
     test_ids[1] = 986543 #Jenisberg
@@ -249,12 +251,12 @@ def test_everything():
     #test_ids[4] = 26386 #Willis Tower
     #test_ids[5] = 1576026 #Julius Brink
     create_statement_development(test_ids, 4, False)
-    #dict_of_rv = create_dict_of_rv_ids(test_ids)
-    #dict_of_text = create_dict_of_extracts(dict_of_rv)#
-    #dict_of_text = {334920: {'2004-08-30T15:26:16Z': 'Unterreichenbach ist eine Gemeinde im Landkreis Calw, im Enztal zwischen Calw und Pforzheim gelegen.\n', '2005-10-15T11:31:36Z': 'Unterreichenbach ist eine Gemeinde im Landkreis Calw, im Tal der Nagold zwischen Calw und Pforzheim gelegen.\n', '2005-10-18T17:26:37Z': 'Unterreichenbach ist eine Gemeinde im Landkreis Calw.\n', '2006-12-06T15:57:34Z': 'Vorlage:Infobox Ort in Deutschland\nUnterreichenbach ist eine Gemeinde im Landkreis Calw.\n', '2008-07-30T11:31:36Z': 'Unterreichenbach ist eine Gemeinde im Landkreis Calw.\n', '2017-07-25T18:38:25Z': 'Unterreichenbach ist eine Gemeinde im Landkreis Calw in Baden-Württemberg. Sie gehört zur Region Nordschwarzwald.\n'}}
-    #print(dict_of_text)
-    #print
-    #create_excel(dict_of_text)
+    #dict_of_rv = create_dict_of_rv_ids(test_ids)       #for test
+    #dict_of_text = create_dict_of_extracts(dict_of_rv) #of the single functions
+    #dict_test = {9984491: {'2017-07-23 20:03:51': 'Männer\n'}, 986543: {'2017-07-23 20:03:51': 'Männer\n'}, \
+    #                334920:{'2017-07-23 20:03:51': 'Männer\n'}, 5407056:{'2017-07-23 20:03:51': 'Männer\n'}}
+    #dictionary to test last function
+    #create_excel(dict_test, 3)
 
-
+#in a test scenario remove hashtag in all other cases comment this line out:
 #test_everything()
