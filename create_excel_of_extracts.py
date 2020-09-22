@@ -1,27 +1,37 @@
-from lxml import html
-import requests
-import os
-import numpy as np
-from wiki_API_requests import get_rv_ids, get_rv_ids_cont, get_text_from_rv, get_info
-import time
-from bs4 import BeautifulSoup
-from pandas import DataFrame
-import pandas as pd
-import xlsxwriter
-import json
+from lxml import html #needed to work with the html files of the revisions
+import lxml #needed to catch the lxml.etree.ParserError
+import requests #needed to catch internet connection problems
+import os #needed to create paths of the excel files
+import numpy as np #needed in the test_everything to create np arrays
+from wiki_API_requests import get_rv_ids, get_rv_ids_cont, get_text_from_rv, get_info #needed for the API requests
+import time #needed to wait ten seconds in the case of internet connection problems
+from bs4 import BeautifulSoup #needed to find the header of each revision
+from pandas import DataFrame #needed to create a DataFrame for each article
+import pandas as pd #needed to save the DataFrame to an excel
+import xlsxwriter #needed to catch errors with forbidden excel sheet names
+import json #needed in the case of debugging to print the answers of the API requests
 
 #for use in other files import the function create_statement_development (see comments there)
+#WARNING: IF THERE EXCEL FILES IN THE SAME DICTIONARY AS THIS FILE NAMED Wikipedia_article_statement_no_1.xlsx,
+#Wikipedia_article_statement_no_2.xlsx, THEY WILL BE OVERWRITTEN BY THIS SCRIPT. RUN SCRIPT ONLY IF YOU SAVED
+#THIS FILES AT ANOTHER LOCATION
 
 CUR_DIR = os.path.dirname(os.path.realpath(__file__)) #dictionary, where this file is saved
 
 #input: pageid_arr - array of pageids, for which a statement development should be done
 #       sheets_per_workbook - statement development is saved in an excel file, where each page gets
-#       an own sheet. This parameter sets the maximal number of sheets per excel file. If the number
-#       exceeds the number of pages, multiple excel files will be created, by default 200
+#           an own sheet. This parameter sets the maximal number of sheets per excel file. If the number
+#           exceeds the number of pages, multiple excel files will be created, by default 200
+#       show_progress - boolean, if True the progress of most timely part of the process, the download of
+#           the html pages of all versions of all pages, is printed to the console
 #output: None, instead it is saved in excel file(s)
 def create_statement_development(pageid_arr, sheets_per_workbook=200, show_progress=True):
 #function first creates a dictionary of all revision ids, which is used to create an dictionary
-#of all different article introductions, which is then saved in an excel
+#of all different article introductions, which is then saved in an excel or multiple excels if the number
+#of pageids exceeds sheets_per_workbook. In each sheet of the excel file(s) the development of the first
+#section (the introduction) of one Wikipedia article is given. The sheet is named like the article, except if
+#the text contains characters, which are forbidden in excel sheets names (like "\") or is too long (31 characters).
+#In this case the sheet is named like the pageid
 #for detailed description see the single functions
     print('total number of articles: ' + str(len(pageid_arr)))
     dict_of_rev, total_number_of_rev = create_dict_of_rv_ids(arr_pageids=pageid_arr)
@@ -61,6 +71,7 @@ def create_dict_of_rv_ids(arr_pageids):
                                                  #wait for ten seconds before trying again to send a request
                     print('Bad internet connection')
                     time.sleep(10)
+            #print(json.dumps(request_json))
             for revision in request_json["query"]["pages"][str(pageid)]["revisions"]:
             #example of an the answer from an normal API request of the page with pageid 9984491
             #{'continue':{'continue': "||", 'rvcontinue': '20200912144539|203608019'},
@@ -98,7 +109,10 @@ def create_dict_of_extracts(dict_of_rev, total_number_of_rev, progress_info=True
     dict_of_intros = {} #this dictionary will be returned at the end
     pageids = dict_of_rev.keys()
     for pageid in pageids: #iterate over all pageids
-        cur_text = " " #in this string the current introduction will be saved to compare at which point there are changes
+        cur_text = "" #in this string the current introduction will be saved to compare at which point there are changes
+        header = "" #in some cases the function will not find a haeder in early versions of Wikipedia articles (reason
+                    #described below around line 150). To avoid that in this case the last header of the former article
+                    #is used the header variable is set back to an empty string
         dict_of_diff_intro = {} #in this dictionary all the different introductions for a single page will be saved
         revids = dict_of_rev[pageid].keys() #dict_of_rev is a dictionary of dictionaries (as described in the function
                                             #create_dict_of_rv_ids, and the keys in the inner dictionary are the
@@ -106,8 +120,8 @@ def create_dict_of_extracts(dict_of_rev, total_number_of_rev, progress_info=True
         for revid in revids:
             i += 1 #each revision of a arbitrary article results in a increment
             if progress_info:
-                if i/total_number_of_rev >= one_percents + 0.1: #track the progress in one percent steps and print it on
-                    one_percents += 0.1                         #the console ogether with the current article the function
+                if i/total_number_of_rev >= one_percents + 0.01: #track the progress in one percent steps and print it on
+                    one_percents += 0.01                         #the console ogether with the current article the function
                     title_request_json = get_info(pageid)        #works with. A detailed description is below of this request
                     title = title_request_json["query"]["pages"][str(pageid)]["title"] #is given in the funtion create_excel
                     print('progress in revision requests: ' + str(int(one_percents*100)) +\
@@ -142,13 +156,20 @@ def create_dict_of_extracts(dict_of_rev, total_number_of_rev, progress_info=True
                 else:   #however if the it contains a bold part it is the header (as explained above)
                     header = pot_head
             header_html = str(header) #change the soup object back to normal html
-            working_version = html.document_fromstring(header_html)  #create a html document (like a html object)
-            try: #in this step it can happen that if the article was deleted at one point a IndexError occurs
-                 #if that is the case the revision will be skiped
-                working_version2 = working_version.xpath('//p')[0] #creating an xpath object (see Wikipedia: xpath)
-            except IndexError:
-                continue
-            plain_text = working_version2.text_content() #deleting all html tags
+            try: #this try is to catch cases, where no header was found in the version. This happens especially with very
+                 #early versions of articles, where the title was not printed in bold. In this case the plain_text
+                 #is set to an empty string, which normally leads to the revison being skipped, since the cur_text
+                 #is set to be an empty string at beginning for each pageid
+                working_version = html.document_fromstring(header_html)  #create a html document (like a html object)
+                try: #in this step it can happen that if the article was deleted at one point a IndexError occurs
+                     #if that is the case the revision will be skiped
+                    working_version2 = working_version.xpath('//p')[0] #creating an xpath object (see Wikipedia: xpath)
+                except IndexError:
+                    continue
+                plain_text = working_version2.text_content()  # deleting all html tags
+            except lxml.etree.ParserError:
+                plain_text = ""
+
             if plain_text == cur_text: #check if the the introduction has changed
                 continue #if not skip this revision
             else:
@@ -220,14 +241,14 @@ def create_excel(dict_of_header, sheets_per_excel=200):
 
 
 def test_everything():
-    test_ids = np.zeros(6)
-    test_ids[2] = 334920 #Unterreichenbach
+    test_ids = np.zeros(2)
+    #test_ids[2] = 334920 #Unterreichenbach
     test_ids[0] = 9984491 #Olympische Winterspiele 1932/Teilnehmer (Norwegen)
     test_ids[1] = 986543 #Jenisberg
-    test_ids[3] = 5407056 #Thomas Rosch
-    test_ids[4] = 26386 #Willis Tower
-    test_ids[5] = 1576026 #Julius Brink
-    create_statement_development(test_ids, 4)
+    #test_ids[3] = 5407056 #Thomas Rosch
+    #test_ids[4] = 26386 #Willis Tower
+    #test_ids[5] = 1576026 #Julius Brink
+    create_statement_development(test_ids, 4, False)
     #dict_of_rv = create_dict_of_rv_ids(test_ids)
     #dict_of_text = create_dict_of_extracts(dict_of_rv)#
     #dict_of_text = {334920: {'2004-08-30T15:26:16Z': 'Unterreichenbach ist eine Gemeinde im Landkreis Calw, im Enztal zwischen Calw und Pforzheim gelegen.\n', '2005-10-15T11:31:36Z': 'Unterreichenbach ist eine Gemeinde im Landkreis Calw, im Tal der Nagold zwischen Calw und Pforzheim gelegen.\n', '2005-10-18T17:26:37Z': 'Unterreichenbach ist eine Gemeinde im Landkreis Calw.\n', '2006-12-06T15:57:34Z': 'Vorlage:Infobox Ort in Deutschland\nUnterreichenbach ist eine Gemeinde im Landkreis Calw.\n', '2008-07-30T11:31:36Z': 'Unterreichenbach ist eine Gemeinde im Landkreis Calw.\n', '2017-07-25T18:38:25Z': 'Unterreichenbach ist eine Gemeinde im Landkreis Calw in Baden-Württemberg. Sie gehört zur Region Nordschwarzwald.\n'}}
