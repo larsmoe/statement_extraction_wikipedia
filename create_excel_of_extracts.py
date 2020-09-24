@@ -121,7 +121,7 @@ def create_dict_of_extracts(dict_of_rev, total_number_of_rev, progress_info=True
             i += 1 #each revision of a arbitrary article results in a increment
             if progress_info:
                 if i/total_number_of_rev >= one_percents + 0.01: #track the progress in one percent steps and print it on
-                    one_percents += 0.01                         #the console ogether with the current article the function
+                    one_percents = int(np.floor(i/total_number_of_rev)) #the console ogether with the current article the function
                     title_request_json = get_info(pageid)        #works with. A detailed description is below of this request
                     title = title_request_json["query"]["pages"][str(pageid)]["title"] #is given in the funtion create_excel
                     print('progress in revision requests: ' + str(int(one_percents*100)) +\
