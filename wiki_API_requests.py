@@ -79,15 +79,15 @@ def get_info(pageid):
 #However in non-test cases (especially if this file is imported) the test_everything() must be commented out.
 def test_everything():
     pageid = 72671 #Angela Merkel
-    pageid = 9984491
-    rvcontinue = "20200912144539|203608019"
-    rvid = 172695940#358 #172695940
+    pageid = 28176
+    rvcontinue = "20060623095637|60147540"
+    rvid = 363371475#358 #172695940
     test_get_rv_id = get_rv_ids(pageid)
-    #test_get_rv_ids_cont = get_rv_ids_cont(pageid, rvcontinue)
-    #test_get_text_from_rv_id = get_text_from_rv(rvid)
+    test_get_rv_ids_cont = get_rv_ids_cont(pageid, rvcontinue)
+    test_get_text_from_rv_id = get_text_from_rv(rvid)
     test_get_info = get_info(pageid)
-    print(json.dumps(test_get_rv_id, indent=4, sort_keys=True))
-    #print(json.dumps(test_get_rv_ids_cont, indent=4, sort_keys=True))
+    #print(json.dumps(test_get_rv_id, indent=4, sort_keys=True))
+    print(json.dumps(test_get_rv_ids_cont, indent=4, sort_keys=True))
     #print(json.dumps(test_get_text_from_rv_id, indent=4, sort_keys=True))
-    print(json.dumps(test_get_info, indent=4, sort_keys=True))
-#test_everything()
+    #print(json.dumps(test_get_info, indent=4, sort_keys=True))
+test_everything()

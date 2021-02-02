@@ -123,6 +123,8 @@ def create_dict_of_extracts(dict_of_rev, total_number_of_rev, progress_info=True
                                             #revision ids
         for revid in revids:
             i += 1 #each revision of a arbitrary article results in a increment
+            if i%200 == 0:
+                print(i)
             if progress_info:
                 if i/total_number_of_rev >= one_percents + 0.01: #track the progress in one percent steps and print it on
                     one_percents = int(np.floor(i/total_number_of_rev)) #the console ogether with the current article the function
@@ -228,7 +230,7 @@ def create_excel(dict_of_header, sheets_per_excel=200):
         try:
             title = title_request_json["query"]["pages"][str(pageid)]["title"] #get the title of the page
         except KeyError:
-            print('wromng pageid:' + str(pageid))
+            print('wrong pageid:' + str(pageid))
             continue
         try: #to avoid errors especially from backslashes in titles, which are not allowed in excel sheet titles
             df.to_excel(writer, sheet_name=str(title)) #write the dataframe to the excel from above in a sheet with the
@@ -254,7 +256,7 @@ def test_everything():
                            #in front of the needed ids
     #test_ids[2] = 334920 #Unterreichenbach
     test_ids[0] = 43819759 #Olympische Winterspiele 1932/Teilnehmer (Norwegen)
-    test_ids[1] = 1574572876543566 #Jenisberg
+    test_ids[1] = 28176 #Jenisberg
     #test_ids[3] = 5407056 #Thomas Rosch
     #test_ids[4] = 26386 #Willis Tower
     #test_ids[5] = 1576026 #Julius Brink
@@ -267,4 +269,4 @@ def test_everything():
     #create_excel(dict_test, 3)
 
 #in a test scenario remove hashtag in all other cases comment this line out:
-test_everything()
+#test_everything()
