@@ -225,7 +225,11 @@ def create_excel(dict_of_header, sheets_per_excel=200):
         #{batchcomplete:"", 'query':{'pages':{'9984491':{'contentmodel':'wikitext', lastrevid:167585246, 'length': 3235,
         # 'ns': 0, 'pageid': 9984491, 'pagelanguage': 'de', 'pagelanguagedir': 'ltr', pagelanguagehtmlcode': 'de',
         #'title': 'Olympische Winterspiele 1932/Teilnehmer (Norwegen)', 'touched': '2020-08-11T03:09:46Z'}}}
-        title = title_request_json["query"]["pages"][str(pageid)]["title"] #get the title of the page
+        try:
+            title = title_request_json["query"]["pages"][str(pageid)]["title"] #get the title of the page
+        except KeyError:
+            print('wromng pageid:' + str(pageid))
+            continue
         try: #to avoid errors especially from backslashes in titles, which are not allowed in excel sheet titles
             df.to_excel(writer, sheet_name=str(title)) #write the dataframe to the excel from above in a sheet with the
                                                        #title of the page as name
