@@ -9,7 +9,7 @@ import json
 def get_rv_ids(pageid):
     #see also: https://www.mediawiki.org/w/api.php?action=help&modules=query%2Brevisions
     S = requests.Session()
-    URL = "https://de.wikipedia.org/w/api.php"
+    URL = "https://en.wikipedia.org/w/api.php"
     PARAMS = {
         "action": "query",
         "prop": "revisions",
@@ -30,7 +30,7 @@ def get_rv_ids(pageid):
 def get_rv_ids_cont(pageid, cont):
     #more details see above (get_rv_ids) and https://www.mediawiki.org/w/api.php?action=help&modules=query%2Brevisions
     S = requests.Session()
-    URL = "https://de.wikipedia.org/w/api.php"
+    URL = "https://en.wikipedia.org/w/api.php"
     PARAMS = {
         "action": "query",
         "prop": "revisions",
@@ -49,7 +49,7 @@ def get_rv_ids_cont(pageid, cont):
 def get_text_from_rv(rvid):
     #see also https://www.mediawiki.org/w/api.php?action=help&modules=parse
     S = requests.Session()
-    URL = "https://de.wikipedia.org/w/api.php"
+    URL = "https://en.wikipedia.org/w/api.php"
     PARAMS = {
         "action": "parse", #note that in this case the parse command is needed instead of the query command for the
                            #current version of an article
@@ -65,7 +65,7 @@ def get_text_from_rv(rvid):
 def get_info(pageid):
     #see also: https://www.mediawiki.org/w/api.php?action=help&modules=query%2Binfo
     S = requests.Session()
-    URL = "https://de.wikipedia.org/w/api.php"
+    URL = "https://en.wikipedia.org/w/api.php"
     PARAMS = {
         "action": "query",
         "prop": "info",
@@ -78,16 +78,16 @@ def get_info(pageid):
 #non tab-intended test_everything command at the end of the function need to be deleted, afterwards run the script.
 #However in non-test cases (especially if this file is imported) the test_everything() must be commented out.
 def test_everything():
-    pageid = 145 #Angela Merkel
+    pageid = 72671 #Angela Merkel
     pageid = 9984491
     rvcontinue = "20200912144539|203608019"
     rvid = 172695940#358 #172695940
     test_get_rv_id = get_rv_ids(pageid)
-    test_get_rv_ids_cont = get_rv_ids_cont(pageid, rvcontinue)
-    test_get_text_from_rv_id = get_text_from_rv(rvid)
+    #test_get_rv_ids_cont = get_rv_ids_cont(pageid, rvcontinue)
+    #test_get_text_from_rv_id = get_text_from_rv(rvid)
     test_get_info = get_info(pageid)
     print(json.dumps(test_get_rv_id, indent=4, sort_keys=True))
-    print(json.dumps(test_get_rv_ids_cont, indent=4, sort_keys=True))
-    print(json.dumps(test_get_text_from_rv_id, indent=4, sort_keys=True))
+    #print(json.dumps(test_get_rv_ids_cont, indent=4, sort_keys=True))
+    #print(json.dumps(test_get_text_from_rv_id, indent=4, sort_keys=True))
     print(json.dumps(test_get_info, indent=4, sort_keys=True))
 #test_everything()

@@ -72,27 +72,31 @@ def create_dict_of_rv_ids(arr_pageids):
                     print('Bad internet connection')
                     time.sleep(10)
             #print(json.dumps(request_json))
-            for revision in request_json["query"]["pages"][str(pageid)]["revisions"]:
-            #example of an the answer from an normal API request of the page with pageid 9984491
-            #{'continue':{'continue': "||", 'rvcontinue': '20200912144539|203608019'},
-            #{'query':{'pages':{'9984491'#(pageid):{'ns':0, 'pageid':9984491, 'revision':
-            #[{'parentid': 9984491, 'revid': 167526629, 'timestamp': "2017-07-23T20:03:51Z"},
-            #{'parentid': 167526629, 'revid': 167585246, 'timestamp': "2017-07-25T17:58:03Z"}, ...
-            #... (all revisions) ]}}}}}
-            #the rvcontinue from the first line is the continue command, which is used to get more revisions
-            #note that the revisions come from old to new
+            try:
+                for revision in request_json["query"]["pages"][str(pageid)]["revisions"]:
+                #example of an the answer from an normal API request of the page with pageid 9984491
+                #{'continue':{'continue': "||", 'rvcontinue': '20200912144539|203608019'},
+                #{'query':{'pages':{'9984491'#(pageid):{'ns':0, 'pageid':9984491, 'revision':
+                #[{'parentid': 9984491, 'revid': 167526629, 'timestamp': "2017-07-23T20:03:51Z"},
+                #{'parentid': 167526629, 'revid': 167585246, 'timestamp': "2017-07-25T17:58:03Z"}, ...
+                #... (all revisions) ]}}}}}
+                #the rvcontinue from the first line is the continue command, which is used to get more revisions
+                #note that the revisions come from old to new
 
-                revid = revision["revid"] #with the revison id one can get the text and other information from older
-                                          #versions of a page
-                revtime = revision["timestamp"] #date and time of the revison (format see above)
-                dict_of_single_page_rev[revid] = revtime #revison id is saved together with the time in the dictionary
-                                                         #described above
-            try: #check if there is a continue command (if there wouldn't be any further revisions this command would be
-                 #missing and therefore raise a KeyError
-                rvcont = request_json["continue"]["rvcontinue"] #see in the example
-                cont = True #since it is now a continue command we need to use another request (see after the first try above)
+                    revid = revision["revid"] #with the revison id one can get the text and other information from older
+                                              #versions of a page
+                    revtime = revision["timestamp"] #date and time of the revison (format see above)
+                    dict_of_single_page_rev[revid] = revtime #revison id is saved together with the time in the dictionary
+                                                             #described above
+                try: #check if there is a continue command (if there wouldn't be any further revisions this command would be
+                     #missing and therefore raise a KeyError
+                    rvcont = request_json["continue"]["rvcontinue"] #see in the example
+                    cont = True #since it is now a continue command we need to use another request (see after the first try above)
+                except KeyError:
+                    cont_exist = False #leave the while loop
             except KeyError:
-                cont_exist = False #leave the while loop
+                print(json.dumps(request_json, indent=4, sort_keys=True))
+                cont_exist = False
         total_number_of_rev += len(dict_of_single_page_rev.keys())
         dict_of_rev[pageid] = dict_of_single_page_rev #this is a dictionary of dictonaries
     return dict_of_rev, total_number_of_rev
@@ -245,8 +249,8 @@ def test_everything():
                            #check for correctness. Just choose the length of the test_id array and remove the hashtags
                            #in front of the needed ids
     #test_ids[2] = 334920 #Unterreichenbach
-    test_ids[0] = 9984491 #Olympische Winterspiele 1932/Teilnehmer (Norwegen)
-    test_ids[1] = 986543 #Jenisberg
+    test_ids[0] = 43819759 #Olympische Winterspiele 1932/Teilnehmer (Norwegen)
+    test_ids[1] = 1574572876543566 #Jenisberg
     #test_ids[3] = 5407056 #Thomas Rosch
     #test_ids[4] = 26386 #Willis Tower
     #test_ids[5] = 1576026 #Julius Brink
@@ -259,4 +263,4 @@ def test_everything():
     #create_excel(dict_test, 3)
 
 #in a test scenario remove hashtag in all other cases comment this line out:
-#test_everything()
+test_everything()
